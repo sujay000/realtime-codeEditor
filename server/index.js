@@ -48,16 +48,28 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('BE_OUT_message', data)
     })
 
-    socket.on('disconnect', () => {
-        console.log(`${socket.id} disconnected`)
-    })
-
     socket.on('code_submission', async ({ CA_content, language, IN_content }) => {
         console.log(CA_content)
         console.log(IN_content)
         let output = await getCodeSubmissionResult(CA_content, language, IN_content)
         console.log('ouput logged: ' + output)
         io.emit('BE_OUT_message', output)
+    })
+
+    ///
+    socket.emit('me', socket.id)
+
+    socket.on('disconnect', () => {
+        console.log(`${socket.id} disconnected`)
+        socket.broadcast.emit('callEnded')
+    })
+
+    socket.on('callUser', (data) => {
+        io.to(data.userToCall).emit('callUser', { signal: data.signalData, from: data.from, name: data.name })
+    })
+
+    socket.on('answerCall', (data) => {
+        io.to(data.to).emit('callAccepted', data.signal)
     })
 })
 
