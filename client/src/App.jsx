@@ -22,6 +22,10 @@ function App() {
         socket.on('BE_OUT_message', (newContent) => {
             setOUT_content(newContent)
         })
+
+        navigator.mediaDevices.getUserMedia().then((devices) => {
+            console.log(devices)
+        })
     }, [])
 
     // updating the boxes content in my UI, and sending that change to broadcast to

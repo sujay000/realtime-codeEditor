@@ -53,6 +53,8 @@ io.on('connection', (socket) => {
     })
 
     socket.on('code_submission', async ({ CA_content, language, IN_content }) => {
+        console.log(CA_content)
+        console.log(IN_content)
         let output = await getCodeSubmissionResult(CA_content, language, IN_content)
         console.log('ouput logged: ' + output)
         io.emit('BE_OUT_message', output)
