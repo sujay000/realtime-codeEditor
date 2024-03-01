@@ -1,34 +1,40 @@
 import { useState, useEffect, useRef } from 'react'
-import { socket } from './socket'
+import { io } from 'socket.io-client'
 import global from 'global'
 import * as process from 'process'
 global.process = process
 import Peer from 'simple-peer'
+import { BACKEND_PORT } from './constants'
 
+const URL = `http://localhost:${BACKEND_PORT}`
 // FE -> frontend
 // BE -> backend
 // CA -> codeArea
 // IN -> input
 // OUT -> output
 
-import { CopyToClipboard } from 'react-copy-to-clipboard'
+// import { CopyToClipboard } from 'react-copy-to-clipboard'
+const socket = io(URL)
+
 function App() {
     const [CA_content, setCA_content] = useState('')
     const [IN_content, setIN_content] = useState('')
     const [OUT_content, setOUT_content] = useState('')
 
-    ///
-    const [me, setMe] = useState('')
-    const [stream, setStream] = useState()
-    const [receivingCall, setReceivingCall] = useState(false)
-    const [caller, setCaller] = useState('')
-    const [callerSignal, setCallerSignal] = useState()
-    const [callAccepted, setCallAccepted] = useState(false)
-    const [idToCall, setIdToCall] = useState('')
-    const [callEnded, setCallEnded] = useState(false)
-    const [name, setName] = useState('')
+    /// video-app
+    const [stream, setStream] = useState(null)
+    const [textInput, setTextInput] = useState('')
+    const [isCallIncoming, setIsCallIncoming] = useState(false)
+
     const myVideo = useRef(null)
-    const userVideo = useRef(null)
+    const hisVideo = useRef(null)
+
+    const [myID, setMyID] = useState('')
+    const [hisID, setHisID] = useState('')
+    const [hisSignallingData, setHisSignallingData] = useState(null)
+
+    const [inCall, setInCall] = useState(false)
+
     const connectionRef = useRef(null)
     ///
 
@@ -44,67 +50,25 @@ function App() {
             setOUT_content(newContent)
         })
 
-        socket.on('me', (id) => {
-            console.log(id)
-            console.log(myVideo)
-            setMe(id)
+        // video-app
+        socket.on('me', (data) => {
+            setMyID(data)
+        })
+        socket.on('callIncoming', ({ id: his_ID, data }) => {
+            setIsCallIncoming(true)
+            setHisID(his_ID)
+            setHisSignallingData(data)
         })
 
-        socket.on('callUser', (data) => {
-            setReceivingCall(true)
-            setCaller(data.from)
-            setName(data.name)
-            setCallerSignal(data.signal)
+        // leave call
+        socket.on('leaveCall', () => {
+            setInCall(false)
+            connectionRef.current.destroy()
+            window.location.reload()
         })
-    }, [])
-
-    const callUser = (id) => {
-        const peer = new Peer({
-            initiator: true,
-            trickle: false,
-            stream: stream,
-        })
-        peer.on('signal', (data) => {
-            socket.emit('callUser', {
-                userToCall: id,
-                signalData: data,
-                from: me,
-                name: name,
-            })
-        })
-        peer.on('stream', (stream) => {
-            userVideo.current.srcObject = stream
-        })
-        socket.on('callAccepted', (signal) => {
-            setCallAccepted(true)
-            peer.signal(signal)
-        })
-
-        connectionRef.current = peer
-    }
-
-    const answerCall = () => {
-        setCallAccepted(true)
-        const peer = new Peer({
-            initiator: false,
-            trickle: false,
-            stream: stream,
-        })
-        peer.on('signal', (data) => {
-            socket.emit('answerCall', { signal: data, to: caller })
-        })
-        peer.on('stream', (stream) => {
-            userVideo.current.srcObject = stream
-        })
-
-        peer.signal(callerSignal)
-        connectionRef.current = peer
-    }
-
-    const leaveCall = () => {
-        setCallEnded(true)
-        connectionRef.current.destroy()
-    }
+    }, [inCall, isCallIncoming])
+    // so that after `incall` & `isCallIncoming` change
+    // whole compoenent re-renders except the hooks (coz I want to show buttons acc.)
 
     // updating the boxes content in my UI, and sending that change to broadcast to
     // other users using socket.io
@@ -125,6 +89,7 @@ function App() {
         socket.emit('code_submission', { CA_content, language: 'cpp', IN_content })
     }
 
+    // video-app
     function handleStart() {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
             setStream(stream)
@@ -132,19 +97,78 @@ function App() {
         })
     }
 
-    function handleLogValues() {
-        console.log('me ' + me)
-        console.log('stream ' + stream)
-        console.log('receivingCall ' + receivingCall)
-        console.log('caller ' + caller)
-        console.log('callerSignal ' + callerSignal)
-        console.log('callAccepted ' + callAccepted)
-        console.log('idToCall ' + idToCall)
-        console.log('callEnded ' + callEnded)
-        console.log('name ' + name)
-        console.log('myVideo ' + myVideo)
-        console.log('userVideo ' + userVideo)
-        console.log('connectionRef ' + connectionRef)
+    // made async so that , setTextinut sets textInput
+    function handleCallUser() {
+        // if previous connection
+        if (connectionRef.current) {
+            connectionRef.current.destroy()
+        }
+
+        console.log(`handle callUser called`)
+        const peer = new Peer({
+            initiator: true, // peer1
+            trickle: false, // calls the 'signal' event only once
+            stream: stream,
+        })
+
+        peer.on('stream', (stream) => {
+            hisVideo.current.srcObject = stream
+        })
+
+        peer.on('signal', (data) => {
+            console.log(textInput)
+            console.log(data)
+            socket.emit('callOther', { textInput: textInput, data: data })
+        })
+
+        socket.on('heAccepted', (data) => {
+            setHisSignallingData(data)
+            peer.signal(data)
+            setInCall(true)
+        })
+
+        connectionRef.current = peer
+    }
+
+    function handleDecline() {
+        console.log(`call declined`)
+        setIsCallIncoming(false)
+    }
+
+    function handleAnswer() {
+        // if previous connection
+        if (connectionRef.current) {
+            connectionRef.current.destroy()
+        }
+
+        console.log(`call accepted`)
+        const peer = new Peer({
+            initiator: false,
+            trickle: false,
+            stream: stream,
+        })
+
+        peer.on('stream', (stream) => {
+            hisVideo.current.srcObject = stream
+        })
+
+        peer.on('signal', (data) => {
+            console.log(`his id peer on signal ${hisID}`)
+            socket.emit('acceptedTheCall', { hisID, data })
+        })
+
+        peer.signal(hisSignallingData)
+        setIsCallIncoming(false)
+        setInCall(true)
+
+        connectionRef.current = peer
+    }
+
+    function handleLeaveCall() {
+        socket.emit('leaveCall', hisID)
+        setInCall(false)
+        connectionRef.current.destroy()
+        window.location.reload()
     }
 
     return (
@@ -156,53 +180,59 @@ function App() {
             output
             <textarea value={OUT_content} onChange={handleOUTchange} /> <br />
             <button onClick={handleResult}>RUN</button>
-            <>
-                <h1>Zoomish</h1>
-                <button onClick={handleStart}>start my video and audio</button>
-                <button onClick={handleLogValues}>Log values</button>
-                <div className="container">
-                    <div className="video-container">
-                        <div className="video">
-                            {<video playsInline muted ref={myVideo} autoPlay style={{ width: '200px' }} />}
-                        </div>
-                        <div className="video">
-                            {<video playsInline ref={userVideo} autoPlay style={{ width: '200px' }} />}
-                        </div>
-                    </div>
-                    <div className="myId">
-                        <input
-                            label="Name"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            style={{ marginBottom: '20px' }}
-                        />
-                        <CopyToClipboard text={me} style={{ marginBottom: '2rem' }}>
-                            <button>Copy ID</button>
-                        </CopyToClipboard>
-
-                        <input label="ID to call" value={idToCall} onChange={(e) => setIdToCall(e.target.value)} />
-                        <div className="call-button">
-                            {callAccepted && !callEnded ? (
-                                <button onClick={leaveCall}>End Call</button>
-                            ) : (
-                                <button aria-label="call" onClick={() => callUser(idToCall)}>
-                                    phone icon
-                                </button>
-                            )}
-                            {idToCall}
-                        </div>
-                    </div>
-                    <div>
-                        {receivingCall && !callAccepted ? (
-                            <div className="caller">
-                                <h1>{name} is calling...</h1>
-                                <button onClick={answerCall}>Answer</button>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
-            </>
+            <div>
+                YOUR ID:
+                <br />
+                {myID}
+                <br />
+                <video playsInline muted ref={myVideo} autoPlay style={{ width: '200px' }} />
+                <br />
+                <video playsInline ref={hisVideo} autoPlay style={{ width: '200px' }} />
+                <br />
+                {!inCall && (
+                    <CallUserComponent
+                        handleStart={handleStart}
+                        textInput={textInput}
+                        setTextInput={setTextInput}
+                        handleCallUser={handleCallUser}
+                    />
+                )}
+                {isCallIncoming && (
+                    <IncomingCallNotification handleDecline={handleDecline} handleAnswer={handleAnswer} />
+                )}
+                {inCall && <button onClick={handleLeaveCall}>Leave call</button>}
+            </div>
         </>
+    )
+}
+
+function CallUserComponent(props) {
+    return (
+        <>
+            <button onClick={props.handleStart}> start my video and audio</button>
+            <br />
+            <br />
+            <label>Enter id</label>
+            <input
+                onChange={(e) => {
+                    props.setTextInput(e.target.value)
+                }}
+                value={props.textInput}
+            />
+            <br />
+            <button onClick={props.handleCallUser}>call user</button>
+            <br />
+        </>
+    )
+}
+
+function IncomingCallNotification({ handleDecline, handleAnswer }) {
+    return (
+        <div>
+            <h2>Incoming Call</h2>
+            <button onClick={handleDecline}>Decline</button>
+            <button onClick={handleAnswer}>Answer</button>
+        </div>
     )
 }
 

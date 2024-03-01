@@ -20,7 +20,7 @@ async function getCodeSubmissionResult(CA_content, language, IN_content) {
     })
     const config = {
         method: 'post',
-        url: 'https://api.codex.jaagrav.in',
+        url: 'http://localhost:3000/',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
         io.emit('BE_OUT_message', output)
     })
 
-    ///
+    /// video-app
     socket.emit('me', socket.id)
 
     socket.on('disconnect', () => {
@@ -64,12 +64,21 @@ io.on('connection', (socket) => {
         socket.broadcast.emit('callEnded')
     })
 
-    socket.on('callUser', (data) => {
-        io.to(data.userToCall).emit('callUser', { signal: data.signalData, from: data.from, name: data.name })
+    socket.on('callOther', ({ textInput, data }) => {
+        console.log(textInput)
+        io.to(textInput).emit('callIncoming', {
+            id: socket.id, // call initiator's id
+            data: data,
+        })
     })
 
-    socket.on('answerCall', (data) => {
-        io.to(data.to).emit('callAccepted', data.signal)
+    socket.on('acceptedTheCall', ({ hisID, data }) => {
+        io.to(hisID).emit('heAccepted', data)
+    })
+
+    // ending the call
+    socket.on('leaveCall', (hisID) => {
+        io.to(hisID).emit('leaveCall')
     })
 })
 
