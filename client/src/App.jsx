@@ -13,7 +13,6 @@ const URL = `http://localhost:${BACKEND_PORT}`
 // IN -> input
 // OUT -> output
 
-// import { CopyToClipboard } from 'react-copy-to-clipboard'
 const socket = io(URL)
 
 function App() {
@@ -173,23 +172,81 @@ function App() {
     }
 
     return (
-        <>
-            Code Area
-            <textarea value={CA_content} onChange={handleCAchange} /> <br />
-            input
-            <textarea value={IN_content} onChange={handleINchange} /> <br />
-            output
-            <textarea value={OUT_content} onChange={handleOUTchange} /> <br />
-            <button onClick={handleResult}>RUN</button>
-            <div>
-                YOUR ID:
-                <br />
-                {myID}
-                <br />
-                <video playsInline muted ref={myVideo} autoPlay style={{ width: '200px' }} />
-                <br />
-                <video playsInline ref={hisVideo} autoPlay style={{ width: '200px' }} />
-                <br />
+        <div className="grid grid-cols-10">
+            <div className="h-screen col-span-7 font-medium bg-gradient-to-br  from-green-400 to-blue-400 p-3 px-8">
+                <div className="h-3/ ">
+                    <div className="text-white font-semibold text-xl pt-4 pb-2">Code Area</div>
+                    <textarea
+                        spellCheck="false"
+                        className="w-full h-auto p-0 font-mono rounded-md"
+                        rows={18}
+                        value={CA_content}
+                        onChange={handleCAchange}
+                        placeholder=" // write your code here"
+                    />
+                </div>
+                <div className="flex">
+                    <div className="h-1/5 w-1/2 pr-4">
+                        <div className="text-white font-semibold text-xl pt-4 pb-2">Input</div>
+                        <textarea
+                            rows={7}
+                            value={IN_content}
+                            className="h-auto w-full font-mono rounded-md"
+                            onChange={handleINchange}
+                        />
+                    </div>
+                    <div className="h-1/5 w-1/2 pl-4">
+                        <div className="text-white font-semibold text-xl pt-4 pb-2">Output</div>
+                        <textarea
+                            rows={7}
+                            value={OUT_content}
+                            className="h-auto w-full font-mono rounded-md"
+                            onChange={handleOUTchange}
+                        />
+                    </div>
+                </div>
+                <div className="h-16 flex  items-center">
+                    <button
+                        onClick={handleResult}
+                        type="button"
+                        className="text-black  
+                        hover:bg-red-700
+                        focus:ring-blue-300 
+                        font-medium 
+                        rounded-lselg 
+                        text-sm 
+                        px-5 
+                        py-2.5 
+                        bg-red-500
+                        rounded-md
+                        text-white"
+                    >
+                        RUN
+                    </button>
+                </div>
+            </div>
+
+            <div className="col-span-3 font-medium  bg-green-200 border-l border-green-300 p-8">
+                <h1 className="text-2xl font-bold p-2 pt-0 text-green-800 ">Video Call</h1>
+
+                <p className="text-sm font-normal text-center text-green-800 mb-2">
+                    Start a video call with your friend. Share your id with them
+                </p>
+                <p
+                    className="text-center 
+                    font-extralight 
+                    border-2 
+                    border-green-900 
+                    rounded 
+                    text-green-200 
+                    py-2 px-4
+                    bg-green-700
+                    "
+                >
+                    {myID}
+                </p>
+                <video className="my-4" playsInline muted ref={myVideo} autoPlay style={{ width: '200px' }} />
+                <video className="my-4" playsInline ref={hisVideo} autoPlay style={{ width: '200px' }} />
                 {!inCall && (
                     <CallUserComponent
                         handleStart={handleStart}
@@ -201,28 +258,67 @@ function App() {
                 {isCallIncoming && (
                     <IncomingCallNotification handleDecline={handleDecline} handleAnswer={handleAnswer} />
                 )}
-                {inCall && <button onClick={handleLeaveCall}>Leave call</button>}
+                {inCall && (
+                    <button
+                        className=" w-full bg-red-500 hover:bg-red-700 text-white rounded-md py-2 
+                px-4 font-normal"
+                        onClick={handleLeaveCall}
+                    >
+                        Leave Call
+                    </button>
+                )}
             </div>
-        </>
+        </div>
     )
 }
 
 function CallUserComponent(props) {
     return (
         <>
-            <button onClick={props.handleStart}> start my video and audio</button>
-            <br />
-            <br />
-            <label>Enter id</label>
+            <button
+                className="
+                w-full block 
+                bg-blue-500 
+                hover:bg-blue-600 
+                text-white 
+                font-semibold 
+                py-2 
+                px-4 
+                rounded"
+                onClick={props.handleStart}
+            >
+                Start my video and audio
+            </button>
+            <div className="text-lg mt-10 py-2 px-2  text-green-800">Enter id</div>
             <input
+                className="rounded-md 
+                py-2 
+                px-4 border-2 
+                border-green-800 
+                bg-green-100
+                text-green-900 
+                font-light
+                "
                 onChange={(e) => {
                     props.setTextInput(e.target.value)
                 }}
                 value={props.textInput}
             />
-            <br />
-            <button onClick={props.handleCallUser}>call user</button>
-            <br />
+            <button
+                className="
+                w-full block 
+                bg-blue-500 
+                hover:bg-blue-600 
+                text-white 
+                font-semibold 
+                py-2 
+                px-4 
+                mt-4
+                rounded"
+                onClick={props.handleCallUser}
+            >
+                Call User
+            </button>
         </>
     )
 }
@@ -230,9 +326,35 @@ function CallUserComponent(props) {
 function IncomingCallNotification({ handleDecline, handleAnswer }) {
     return (
         <div>
-            <h2>Incoming Call</h2>
-            <button onClick={handleDecline}>Decline</button>
-            <button onClick={handleAnswer}>Answer</button>
+            <h2 className="text-md font-semibold text-center text-green-800 mt-4">Incoming Call</h2>
+            <div className="flex w-full justify-center items-center">
+                <button
+                    className=" w-full block 
+                    bg-red-500
+                    hover:bg-red-600 
+                    text-white 
+                    font-semibold 
+                    py-2 
+                    px-4 
+                    mt-4
+                    rounded"
+                    onClick={handleDecline}
+                >
+                    Decline
+                </button>
+                <button
+                    className="font-normal 
+                    rounded 
+                    text-green-200 
+                    py-2 
+                    px-4 
+                    mt-4
+                    bg-green-700"
+                    onClick={handleAnswer}
+                >
+                    Answer
+                </button>
+            </div>
         </div>
     )
 }
