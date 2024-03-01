@@ -38,22 +38,23 @@ async function getCodeSubmissionResult(CA_content, language, IN_content) {
 io.on('connection', (socket) => {
     console.log(`${socket.id} connected`)
 
-    socket.on('FE_CA_message', (data) => {
-        socket.broadcast.emit('BE_CA_message', data)
+    socket.on('FE_CA_message', ({ data, hisID }) => {
+        io.to(hisID).emit('BE_CA_message', data)
     })
-    socket.on('FE_IN_message', (data) => {
-        socket.broadcast.emit('BE_IN_message', data)
+    socket.on('FE_IN_message', ({ data, hisID }) => {
+        io.to(hisID).emit('BE_IN_message', data)
     })
-    socket.on('FE_OUT_message', (data) => {
-        socket.broadcast.emit('BE_OUT_message', data)
+    socket.on('FE_OUT_message', ({ data, hisID }) => {
+        io.to(hisID).emit('BE_OUT_message', data)
     })
 
-    socket.on('code_submission', async ({ CA_content, language, IN_content }) => {
+    socket.on('code_submission', async ({ CA_content, language, IN_content, myID, hisID }) => {
         console.log(CA_content)
         console.log(IN_content)
         let output = await getCodeSubmissionResult(CA_content, language, IN_content)
         console.log('ouput logged: ' + output)
-        io.emit('BE_OUT_message', output)
+        io.to(myID).emit('BE_OUT_message', output)
+        if (hisID != null) io.to(hisID).emit('BE_OUT_message', output)
     })
 
     /// video-app

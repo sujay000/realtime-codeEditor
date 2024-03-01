@@ -30,7 +30,7 @@ function App() {
     const hisVideo = useRef(null)
 
     const [myID, setMyID] = useState('')
-    const [hisID, setHisID] = useState('')
+    const [hisID, setHisID] = useState(null)
     const [hisSignallingData, setHisSignallingData] = useState(null)
 
     const [inCall, setInCall] = useState(false)
@@ -74,19 +74,19 @@ function App() {
     // other users using socket.io
     function handleCAchange(e) {
         setCA_content(e.target.value)
-        socket.emit('FE_CA_message', e.target.value)
+        if (hisID != null) socket.emit('FE_CA_message', { data: e.target.value, hisID })
     }
     function handleINchange(e) {
         setIN_content(e.target.value)
-        socket.emit('FE_IN_message', e.target.value)
+        if (hisID != null) socket.emit('FE_IN_message', { data: e.target.value, hisID })
     }
     function handleOUTchange(e) {
         setOUT_content(e.target.value)
-        socket.emit('FE_OUT_message', e.target.value)
+        if (hisID != null) socket.emit('FE_OUT_message', { data: e.target.value, hisID })
     }
 
     function handleResult() {
-        socket.emit('code_submission', { CA_content, language: 'cpp', IN_content })
+        socket.emit('code_submission', { CA_content, language: 'cpp', IN_content, myID, hisID })
     }
 
     // video-app
@@ -118,6 +118,7 @@ function App() {
         peer.on('signal', (data) => {
             console.log(textInput)
             console.log(data)
+            setHisID(textInput)
             socket.emit('callOther', { textInput: textInput, data: data })
         })
 
