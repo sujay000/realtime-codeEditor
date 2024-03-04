@@ -189,6 +189,7 @@ function App() {
                     <div className="h-1/5 w-1/2 pr-4">
                         <div className="text-white font-semibold text-xl pt-4 pb-2">Input</div>
                         <textarea
+                            spellCheck="false"
                             rows={7}
                             value={IN_content}
                             className="h-auto w-full font-mono rounded-md"
@@ -198,6 +199,7 @@ function App() {
                     <div className="h-1/5 w-1/2 pl-4">
                         <div className="text-white font-semibold text-xl pt-4 pb-2">Output</div>
                         <textarea
+                            spellCheck="false"
                             rows={7}
                             value={OUT_content}
                             className="h-auto w-full font-mono rounded-md"
@@ -329,7 +331,7 @@ function IncomingCallNotification({ handleDecline, handleAnswer }) {
             <h2 className="text-md font-semibold text-center text-green-800 mt-4">Incoming Call</h2>
             <div className="flex w-full justify-center items-center">
                 <button
-                    className=" w-full block 
+                    className="
                     bg-red-500
                     hover:bg-red-600 
                     text-white 
